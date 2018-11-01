@@ -38,7 +38,7 @@ echo $CLASSPATH
 
 The `make_datafiles.py` comes with usage information that can be activated using the `-h` flag.
 
-```bash
+```
 $ python make_datafiles.py -h
 
 usage: Preprocess dataset for Pointer Generator Networks [-h] -f FULLTEXT -s
@@ -56,7 +56,7 @@ optional arguments:
 
 Run this script by pointing it to the full text and summary directories as follows:
 
-```bash
+```
 $ python make_datafiles.py -f dataset/fulltext -s dataset/summary -o output/
 ```
 
