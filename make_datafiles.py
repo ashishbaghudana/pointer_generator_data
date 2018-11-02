@@ -1,13 +1,13 @@
+import collections
 import os
+import random
 import struct
 import subprocess
-import collections
-import random
-from tensorflow.core.example import example_pb2
-
-from nltk import sent_tokenize
 from argparse import ArgumentParser
 from glob import glob
+
+from nltk import sent_tokenize
+from tensorflow.core.example import example_pb2
 
 # We use these to separate the summary sentences in the .bin datafiles
 SENTENCE_START = '<s>'
@@ -168,10 +168,16 @@ def read_text_file(text_file):
 
 def get_fulltext_summary(fulltext_doc, summary_doc):
     # Article lines
-    fulltext_lines = [line.lower() for line in read_text_file(fulltext_doc)]
+    fulltext_lines = [
+        line.lower() for line in read_text_file(
+            os.path.join(TOKENIZED_DOCUMENTS_DIR, fulltext_doc))
+    ]
 
     # Summary lines
-    summary_lines = [line.lower() for line in read_text_file(summary_doc)]
+    summary_lines = [
+        line.lower() for line in read_text_file(
+            os.path.join(TOKENIZED_SUMMARY_DIR, summary_doc))
+    ]
 
     # Make article into a single string
     fulltext = ' '.join(fulltext_lines)
@@ -208,9 +214,9 @@ def write_to_bin(out_file, fulltext_docs, summary_docs, makevocab=False):
             # Write to tf.Example
             tf_example = example_pb2.Example()
             tf_example.features.feature['article'].bytes_list.value.extend(
-                [article])
+                [article.encode()])
             tf_example.features.feature['abstract'].bytes_list.value.extend(
-                [abstract])
+                [abstract.encode()])
             tf_example_str = tf_example.SerializeToString()
             str_len = len(tf_example_str)
             writer.write(struct.pack('q', str_len))
@@ -286,9 +292,9 @@ if __name__ == '__main__':
                        TOKENIZED_SUMMARY_DIR)
 
     fulltext_docs_train, fulltext_docs_test, fulltext_docs_val = get_documents(
-        TOKENIZED_DOCUMENTS_DIR, ".text", split=True)
+        TOKENIZED_DOCUMENTS_DIR, "*.text", split=True)
     summary_docs_train, summary_docs_test, summary_docs_val = get_documents(
-        TOKENIZED_SUMMARY_DIR, ".summary", split=True)
+        TOKENIZED_SUMMARY_DIR, "*.summary", split=True)
 
     write_to_bin(
         os.path.join(FINISHED_FILES_DIR, "train.bin"),
