@@ -90,7 +90,8 @@ def get_documents(directory,
 
 
 def tokenize_documents(fulltext_dir, summary_dir, tokenized_documents_dir,
-                       tokenized_summary_dir):
+                       tokenized_summary_dir, tokenize_docs,
+                       tokenize_summaries):
     """
     Maps a whole directory of .story files to a tokenized version using
     Stanford CoreNLP Tokenizer
@@ -120,13 +121,15 @@ def tokenize_documents(fulltext_dir, summary_dir, tokenized_documents_dir,
         '-preserveLines', 'mapping_summary.txt'
     ]
 
-    print("Tokenizing %i fulltext documents in %s and saving in %s..." %
-          (len(documents), fulltext_dir, tokenized_documents_dir))
-    subprocess.call(command_fulltext)
+    if tokenize_docs:
+        print("Tokenizing %i fulltext documents in %s and saving in %s..." %
+              (len(documents), fulltext_dir, tokenized_documents_dir))
+        subprocess.call(command_fulltext)
 
-    print("Tokenizing %i summary documents in %s and saving in %s..." %
-          (len(documents), summary_dir, tokenized_summary_dir))
-    subprocess.call(command_summary)
+    if tokenize_summaries:
+        print("Tokenizing %i summary documents in %s and saving in %s..." %
+              (len(documents), summary_dir, tokenized_summary_dir))
+        subprocess.call(command_summary)
 
     print("Stanford CoreNLP Tokenizer has finished.")
 
@@ -250,21 +253,36 @@ if __name__ == '__main__':
     parser = ArgumentParser(
         "Preprocess dataset for Pointer Generator Networks")
 
-    parser.add_argument(
+    paths = parser.add_argument_group('Path arguments')
+    paths.add_argument(
         "-f",
         "--fulltext",
         help="Path to directory containing full text documents",
         required=True)
-    parser.add_argument(
+    paths.add_argument(
         "-s",
         "--summary",
         help="Path to directory containing summaries",
         required=True)
-    parser.add_argument(
+    paths.add_argument(
         "-o",
         "--output",
         help="Path to directory to contain the .bin files",
         required=True)
+
+    actions = parser.add_mutually_exclusive_group("Set of actions")
+    actions.add_argument(
+        "--only_tokenize_fulltext",
+        help="Only tokenize full text documents",
+        action="store_true")
+    actions.add_argument(
+        "--only_tokenize_summaries",
+        help="Only tokenize summary documents",
+        action="store_true")
+    actions.add_argument(
+        "--write_to_bin", help="Write as bin files", action="store_true")
+    actions.add_argument(
+        "--all", help="Perform all actions", action="store_true", default=True)
 
     args = parser.parse_args()
 
@@ -287,29 +305,37 @@ if __name__ == '__main__':
     if not os.path.exists(FINISHED_FILES_DIR):
         os.makedirs(FINISHED_FILES_DIR, exist_ok=True)
 
-    # Run Stanford Tokenizer on every full text document
-    tokenize_documents(args.fulltext, args.summary, TOKENIZED_DOCUMENTS_DIR,
-                       TOKENIZED_SUMMARY_DIR)
+    if args.all:
+        args.only_tokenize_fulltext = True
+        args.only_tokenize_summaries = True
+        args.write_to_bin = True
+
+    if args.only_tokenize_fulltext or args.only_tokenize_summaries:
+        # Run Stanford Tokenizer on every full text document
+        tokenize_documents(args.fulltext, args.summary,
+                           TOKENIZED_DOCUMENTS_DIR, TOKENIZED_SUMMARY_DIR,
+                           args.only_tokenize_fulltext,
+                           args.only_tokenize_summaries)
 
     fulltext_docs_train, fulltext_docs_test, fulltext_docs_val = get_documents(
         TOKENIZED_DOCUMENTS_DIR, "*.text", split=True)
     summary_docs_train, summary_docs_test, summary_docs_val = get_documents(
         TOKENIZED_SUMMARY_DIR, "*.summary", split=True)
 
-    write_to_bin(
-        os.path.join(FINISHED_FILES_DIR, "train.bin"),
-        fulltext_docs_train,
-        summary_docs_train,
-        makevocab=True)
-    write_to_bin(
-        os.path.join(FINISHED_FILES_DIR, "test.bin"),
-        fulltext_docs_test,
-        summary_docs_test,
-        makevocab=False)
-    write_to_bin(
-        os.path.join(FINISHED_FILES_DIR, "val.bin"),
-        fulltext_docs_val,
-        summary_docs_val,
-        makevocab=False)
-
-    chunk_all()
+    if args.write_to_bin:
+        write_to_bin(
+            os.path.join(FINISHED_FILES_DIR, "train.bin"),
+            fulltext_docs_train,
+            summary_docs_train,
+            makevocab=True)
+        write_to_bin(
+            os.path.join(FINISHED_FILES_DIR, "test.bin"),
+            fulltext_docs_test,
+            summary_docs_test,
+            makevocab=False)
+        write_to_bin(
+            os.path.join(FINISHED_FILES_DIR, "val.bin"),
+            fulltext_docs_val,
+            summary_docs_val,
+            makevocab=False)
+        chunk_all()
