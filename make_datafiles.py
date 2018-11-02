@@ -282,7 +282,7 @@ if __name__ == '__main__':
     actions.add_argument(
         "--write_to_bin", help="Write as bin files", action="store_true")
     actions.add_argument(
-        "--all", help="Perform all actions", action="store_true")
+        "--all", help="Perform all actions", action="store_true", default=True)
 
     args = parser.parse_args()
 
